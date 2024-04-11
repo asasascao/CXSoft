@@ -28,7 +28,6 @@ namespace CXSoft.Flowsh
         {
             OutParamInfo = new List<Param>();
             Delegate = null;
-            param = new Dictionary<string, object>(0);
         }
 
         /// <summary>
@@ -41,7 +40,10 @@ namespace CXSoft.Flowsh
             base.Register(method);
             this.DefaultResName = ((LogicDelegateInfo)method).ResName;
             OutParamInfo = new List<Param>();
-            OutParamInfo.Add(new Param() { Name = DefaultResName });
+            if (!string.IsNullOrWhiteSpace(DefaultResName))
+            {
+                OutParamInfo.Add(new Param() { Name = DefaultResName });
+            }
             return this;
         }
 

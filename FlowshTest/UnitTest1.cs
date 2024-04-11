@@ -28,9 +28,9 @@ namespace FlowshTest
         [TestMethod]
         public void TestMethod2()
         {
-            var res=FlowshFactory.CreateFlowsh().
-                AddHandler(LogicDelegateInfo.CreateInstance().Register<int>(FuncC.Test0,"r1")).
-                AddHandler(LogicDelegateInfo.CreateInstance().Register<int,int>(FuncC.Test1, "t1:1", "r2")).
+            var res = FlowshFactory.CreateFlowsh().
+                AddHandler(LogicDelegateInfo.CreateInstance().Register<int>(FuncC.Test0, "r1")).
+                AddHandler(LogicDelegateInfo.CreateInstance().Register<int, int>(FuncC.Test1, "t1:1", "r2")).
                 AddHandler(LogicDelegateInfo.CreateInstance().Register<int, int, int>(FuncC.Test2, "t2:2", "r3")).
                 AddHandler(LogicDelegateInfo.CreateInstance().Register<int, int, int, int>(FuncC.Test3, "t3:3", "r4")).
                 AddHandler(LogicDelegateInfo.CreateInstance().Register<int, int, int, int, int>(FuncC.Test4, "t4:4", "r5")).
@@ -41,10 +41,22 @@ namespace FlowshTest
                 AddParamConfigs("--t8--6--Test6--r7--out--")).
                 Execute();
         }
+
+        [TestMethod]
+        public void TestMethod3()
+        {
+            ActionC.asyncDelegateInfo = (AsyncDelegateInfo)AsyncDelegateInfo.CreateInstance().Register<int>(ActionC.TestAsync, "t1:1");
+
+            FlowshFactory.CreateFlowsh().
+                AddHandler(ActionC.asyncDelegateInfo).
+                Execute();
+        }
     }
 
     public class ActionC
     {
+        public static AsyncDelegateInfo asyncDelegateInfo;
+
         public static void Test0()
         {
             Console.WriteLine("无参方法0");
@@ -88,6 +100,18 @@ namespace FlowshTest
         public static void Test8(int t1, int t2, int t3, int t4, int t5, int t6, int t7, int t8)
         {
             Console.WriteLine("无参方法8:" + t1 + " " + t2 + " " + t3 + " " + t4 + " " + t5 + " " + t6 + " " + t7 + " " + t8);
+        }
+
+        public static void TestAsync(int t1)
+        {
+            Console.WriteLine("无参异步方法0_"+ t1);
+            (new Action(() => { TestCallBack(t1); })).BeginInvoke(null,null);
+        }
+
+        public static void TestCallBack(int t1)
+        {
+            Console.WriteLine("无参异步方法1_" + t1);
+            ActionC.asyncDelegateInfo?.DoMethodComplate("cc:" + t1);
         }
     }
 

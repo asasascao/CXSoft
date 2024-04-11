@@ -31,5 +31,10 @@ namespace CXSoft.Flowsh
         /// 值
         /// </summary>
         public object ValueInfo { get; set; }
+
+        public override string ToString()
+        {
+            return Name+":"+ ValueInfo.ToString();
+        }
     }
 }

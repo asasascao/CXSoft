@@ -12,8 +12,10 @@ namespace CXSoft.Flowsh
     /// </summary>
     public class Flowsh: IFlowsh
     {
-        List<LevelList<AbstractHandler>> handlers = new List<LevelList<AbstractHandler>>();//方法线
+        List<LevelList<AbstractHandler>> handlers = 
+            new List<LevelList<AbstractHandler>>();//方法线
 
+        #region
         /// <summary>
         /// 索引
         /// </summary>
@@ -28,6 +30,7 @@ namespace CXSoft.Flowsh
         /// 描述
         /// </summary>
         public string Discription { get; set; }
+        #endregion
 
         public Flowsh()
         {
@@ -112,9 +115,15 @@ namespace CXSoft.Flowsh
                     Register(level).Register(GetHandler, GetHandlerParam).
                     AddParamConfigs(@delegate.ParamConfigs?.ToArray());
             }
-            else if (@delegate is LogicDelegateInfo)
+            else if (@delegate is JudgeDelegateInfo)
             {
                 handler = new JudgeHandler().Register(@delegate).Register(level).
+                    AddParamConfigs(@delegate.ParamConfigs?.ToArray());
+            }
+            else if (@delegate is AsyncDelegateInfo)
+            {
+                handler = new AsyncHandler().Register(@delegate).
+                    Register(level).Register(GetHandler, GetHandlerParam).
                     AddParamConfigs(@delegate.ParamConfigs?.ToArray());
             }
             if (handler == null)
@@ -139,6 +148,41 @@ namespace CXSoft.Flowsh
         }
 
         /// <summary>
+        /// 获取委托信息列表
+        /// </summary>
+        /// <param name="level">步骤次序</param>
+        /// <param name="methodname">方法名</param>
+        /// <returns>委托信息集</returns>
+        public IEnumerable<DelegateInfo> GetDelegateByLevelArray(int level,string methodname)
+        {
+            #region
+            var hads = handlers.FirstOrDefault(o => o.Level == level);
+            if (hads!=null)
+            {
+                if (string.IsNullOrWhiteSpace(methodname)) return hads?.Select(o => o.Delegate);
+                return hads?.Where(o=>o.Delegate.MethodName== methodname)?.Select(o => o.Delegate);
+            }
+            return null;
+            #endregion
+        }
+
+        /// <summary>
+        /// 获取委托信息
+        /// </summary>
+        /// <param name="level">步骤次序</param>
+        /// <param name="methodname">方法名</param>
+        /// <param name="methodindex">方法顺序</param>
+        /// <returns>委托信息</returns>
+        public DelegateInfo GetDelegateByLevel(int level, string methodname,int methodindex=0)
+        {
+            #region
+            if (methodindex < 0) return null;
+            var deles= GetDelegateByLevelArray(level, methodname)?.ToArray();
+            return (deles != null && deles.Length > 0 && methodindex <= deles.Length - 1) ? deles[methodindex] : null;
+            #endregion
+        }
+
+        /// <summary>
         /// 获取步骤图谱
         /// </summary>
         /// <returns>图谱</returns>
@@ -154,7 +198,7 @@ namespace CXSoft.Flowsh
                     res[i, j] = "";
                     if (j+1 <= handlers[i].Count)
                     {
-                        res[i, j] = handlers[i][j].MethodName;
+                        res[i, j] = handlers[i][j].Delegate.MethodName;
                     }
                 }
             }
@@ -172,7 +216,7 @@ namespace CXSoft.Flowsh
             var handles=handlers.FirstOrDefault(o => o.Level == param.SourceLevel);
             if(handles!=null&& handles.Count()>0)
             {
-                var hanls=handles.Where(o => o.MethodName == param.MethodName)?.ToArray();
+                var hanls=handles.Where(o => o.Delegate.MethodName == param.MethodName)?.ToArray();
                 if(hanls != null && hanls.Length > 0 && param.MethodIndex < hanls.Count())
                 {
                     return hanls[param.MethodIndex];
@@ -339,11 +383,11 @@ namespace CXSoft.Flowsh
             }
             catch (ArgumentException aex)
             {
-                throw new ArgumentException("流程" + curLevel + "层出现错:" + aex.Message);
+                throw new CXArgumentException(curLevel,"","流程" + curLevel + "层出现错:" + aex.Message);
             }
             catch (Exception ex)
             {
-                throw new Exception("流程" + curLevel + "层出现错:" + ex.Message);
+                throw new CXException(curLevel, "", "流程" + curLevel + "层出现错:" + ex.Message);
             }
             #endregion
         }

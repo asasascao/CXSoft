@@ -21,7 +21,24 @@ namespace CXSoft.Flowsh
         List<ParamTransfer> transfers = new List<ParamTransfer>();
         internal List<ParamTransfer> Transfers => transfers;
 
+        #region
+        /// <summary>
+        /// 层级
+        /// </summary>
+        public int Level { get; protected set; } = 0;
 
+        /// <summary>
+        /// 委托
+        /// </summary>
+        public DelegateInfo Delegate { get; protected set; }
+
+        /// <summary>
+        /// 方法参数名
+        /// </summary>
+        public List<Param> InParamInfo { get; set; }
+        #endregion
+
+        #region
         /// <summary>
         /// 获取处理器
         /// </summary>
@@ -30,32 +47,6 @@ namespace CXSoft.Flowsh
         /// 获取处理参数
         /// </summary>
         internal Func<int, string, Param> GetHandlerParam { get; set; }
-
-        #region
-        /// <summary>
-        /// 委托
-        /// </summary>
-        protected Delegate Delegate;
-
-        /// <summary>
-        /// 参数
-        /// </summary>
-        protected Dictionary<string, object> param;
-
-        /// <summary>
-        /// 方法名称
-        /// </summary>
-        public string MethodName { get; protected set; } = "";
-
-        /// <summary>
-        /// 层级
-        /// </summary>
-        public int Level { get; protected set; } = 0;
-
-        /// <summary>
-        /// 方法参数名
-        /// </summary>
-        public List<Param> InParamInfo { get; set; }
         #endregion
 
         public AbstractHandler()
@@ -70,10 +61,8 @@ namespace CXSoft.Flowsh
         /// <returns></returns>
         internal virtual AbstractHandler Register(DelegateInfo method)
         {
-            this.Delegate = method.@delegate;
-            this.param = method.param;
-            this.MethodName = Delegate.GetMethodInfo() == null ? "" : Delegate.GetMethodInfo().Name;
-            var parameters = Delegate.GetMethodInfo()?.GetParameters()?.Select(parameter => new Param() {
+            this.Delegate = method;
+            var parameters = this.Delegate.Parameters?.Select(parameter => new Param() {
                 Name = parameter.Name,
                 HasDefaultValue = parameter.HasDefaultValue,
                 DefaultValue = parameter.DefaultValue,
@@ -178,10 +167,8 @@ namespace CXSoft.Flowsh
         public AbstractHandler AddParamConfig(string configStr)
         {
             if (configStr == null || string.IsNullOrWhiteSpace(configStr)) return this;
-            string pattern = @"--";
-            string[] parts = Regex.Split(configStr, pattern)?.Where(o=>!string.IsNullOrWhiteSpace(o))?.ToArray();
-            ParamTransfer paramTransfer = new ParamTransfer();
-            paramTransfer.SetTransfer(parts);
+            var paramTransfer=ParamStrToParamTransfer.Transfer(configStr);
+            if (paramTransfer == null) return this;
             Transfers.Add(paramTransfer);
             return this;
         }
@@ -196,9 +183,9 @@ namespace CXSoft.Flowsh
             for (int i = 0; i < InParamInfo.Count; i++)
             {
                 var inparamName=InParamInfo[i].Name;
-                if(param!=null&& param.ContainsKey(inparamName))
+                if(Delegate.param != null&& Delegate.param.ContainsKey(inparamName))
                 {
-                    InParamInfo[i].ValueInfo = param[inparamName];
+                    InParamInfo[i].ValueInfo = Delegate.param[inparamName];
                 }
                 else
                 {
@@ -299,20 +286,22 @@ namespace CXSoft.Flowsh
                 if (InParamInfo != null && InParamInfo.Count > 0)
                 {
                     var paraml = InParamInfo.Select(o => o.ValueInfo).ToArray();
-                    return Delegate.Method?.Invoke(Delegate.Target, paraml);
+                    return Delegate.@delegate.Method?.Invoke(Delegate.@delegate.Target, paraml);
                 }
                 else
                 {
-                    return Delegate.Method?.Invoke(Delegate.Target,null);
+                    return Delegate.@delegate.Method?.Invoke(Delegate.@delegate.Target,null);
                 }
             }
             catch (ArgumentException aex)
             {
-                throw new ArgumentException("方法" + MethodName + "出错:" + aex.Message);
+                string errmsg = "方法" + Delegate.MethodName + "出错:" + aex.Message;
+                throw new CXArgumentException(Level, Delegate.MethodName, errmsg, InParamInfo);
             }
             catch (Exception ex)
             {
-                throw new Exception("方法" + MethodName + "出错:" + ex.Message);
+                string errmsg = "方法" + Delegate.MethodName + "出错:" + ex.Message;
+                throw new CXException(Level, Delegate.MethodName, errmsg, InParamInfo);
             }
             #endregion
         }

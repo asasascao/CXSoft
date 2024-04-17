@@ -51,7 +51,7 @@ namespace CXSoft.Flowsh
         /// 执行
         /// </summary>
         /// <returns>返回值</returns>
-        public override ResStruct Execute()
+        public override ResStruct[] Execute()
         {
             #region
             var res = base.DoExecute();
@@ -59,7 +59,8 @@ namespace CXSoft.Flowsh
             {
                 OutParamInfo.ForEach((p) => { p.ValueInfo = res; });
             }
-            return new ResStruct() { Type=ResType.Normal,Res= res, Name= DefaultResName };
+            return (string.IsNullOrWhiteSpace(DefaultResName) || res == null) ? null :
+                new ResStruct[] { ResStruct.CreateInstance(DefaultResName, res) };
             #endregion
         }
     }

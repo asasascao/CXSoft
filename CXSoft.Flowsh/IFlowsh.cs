@@ -77,6 +77,6 @@ namespace CXSoft.Flowsh
         /// <summary>
         /// 执行
         /// </summary>
-        Dictionary<string, object> Execute();
+        ResStruct[] Execute();
     }
 }

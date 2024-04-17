@@ -33,20 +33,13 @@ namespace CXSoft.Flowsh
         /// 执行
         /// </summary>
         /// <returns>返回结果</returns>
-        public override ResStruct Execute()
+        public override ResStruct[] Execute()
         {
             var res=base.DoExecute();
-            var res_st=new ResStruct();
-            res_st.Type = ResType.Normal;
-            res_st.JumpTarget = null;
-            res_st.Res = null;
-            res_st.Name = "";
-            if (ResJudgeDic.ContainsKey(res))
-            {
-                res_st.Type = ResType.Jump;
-                res_st.JumpTarget=ResJudgeDic[res];
-            }
-            return res_st;
+            var ju = ResJudgeDic!=null && ResJudgeDic.Count>0 && 
+                ResJudgeDic.ContainsKey(res) ? ResJudgeDic[res] : null;
+            var resi = ResStruct.CreateInstance(ju);
+            return resi.Type==(int)ResType.Normal ? null: new ResStruct[] { resi };
         }
     }
 }

@@ -42,11 +42,11 @@ namespace CXSoft.Flowsh
         /// <summary>
         /// 获取处理器
         /// </summary>
-        internal Func<ParamTransfer, AbstractHandler> GetHandler { get; set; }
+        internal Func<ParamTransfer, AbstractHandler> DoGetHandler { get; set; }
         /// <summary>
         /// 获取处理参数
         /// </summary>
-        internal Func<int, string, Param> GetHandlerParam { get; set; }
+        internal Func<int, string, Param> DoGetHandlerParam { get; set; }
         #endregion
 
         public AbstractHandler()
@@ -84,8 +84,8 @@ namespace CXSoft.Flowsh
         internal AbstractHandler Register(Func<ParamTransfer, AbstractHandler> GetHandler = null,
             Func<int, string, Param> GetHandlerParam=null)
         {
-            this.GetHandler = GetHandler;
-            this.GetHandlerParam = GetHandlerParam;
+            this.DoGetHandler = GetHandler;
+            this.DoGetHandlerParam = GetHandlerParam;
             return this;
         }
 
@@ -191,7 +191,7 @@ namespace CXSoft.Flowsh
                 {
                     Param param = null;
                     var transfer=transfers.FirstOrDefault(o => o.ParamName == inparamName);
-                    var handler = transfer == null ? null : GetHandler?.Invoke(transfer);
+                    var handler = transfer == null ? null : DoGetHandler?.Invoke(transfer);
                     if (handler != null)
                     {
                         if (transfer.ParamInOut.ToLower() == "in")
@@ -244,7 +244,7 @@ namespace CXSoft.Flowsh
         private object SetDefaultInputParam(string inparamName, Param target_param)
         {
             #region
-            var param = GetHandlerParam?.Invoke(Level, inparamName);
+            var param = DoGetHandlerParam?.Invoke(Level, inparamName);
             if (param != null)
             {
                 return param.ValueInfo;
@@ -268,7 +268,7 @@ namespace CXSoft.Flowsh
         /// 执行
         /// </summary>
         /// <returns>执行结果</returns>
-        public abstract ResStruct Execute();
+        public abstract ResStruct[] Execute();
 
         /// <summary>
         /// 执行

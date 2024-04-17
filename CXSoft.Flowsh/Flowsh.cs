@@ -10,7 +10,7 @@ namespace CXSoft.Flowsh
     /// <summary>
     /// 流程线
     /// </summary>
-    public class Flowsh: IFlowsh
+    public class Flowsh: AbstractHandler, IFlowsh
     {
         List<LevelList<AbstractHandler>> handlers = 
             new List<LevelList<AbstractHandler>>();//方法线
@@ -276,12 +276,12 @@ namespace CXSoft.Flowsh
         /// <summary>
         /// 执行
         /// </summary>
-        public Dictionary<string, object> Execute()
+        public override ResStruct[] Execute()
         {
             #region
             if (handlers == null || handlers.Count <= 0) return null;
             object sock_excu = new object();
-            Dictionary<string, object> res = new Dictionary<string, object>();
+            List<ResStruct> res_st = new List<ResStruct>();
             int curLevel = 0;
             try
             {
@@ -293,93 +293,33 @@ namespace CXSoft.Flowsh
                     curLevel = levels[i];
                     var handleritem = handler.FirstOrDefault(o => o.Level == curLevel);
                     if (handleritem == null || handleritem.Count <= 0) continue;
-                    if (handleritem.Count == 1)
+                    var list = handleritem.Where(o => o.GetType().IsAssignableFrom(typeof(LogicHandler)));
+                    if (list != null && list.Count() > 0)
                     {
-                        var resh=handleritem[0].Execute();
-                        if(resh.Type == ResType.Normal)
+                        if (list.Count() == 1)
                         {
-                            if (lastLevel == handleritem.Level)
-                            {
-                                res.Add(resh.Name, resh.Res);
-                            }
+                            handleritem[0].Execute();
                         }
                         else
                         {
-                            var level=resh.JumpTarget.Level;
-                            i = Array.IndexOf(levels, level)-1;
-                            if (i < 0) i = -1;
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        var list=handleritem.Where(o => o.GetType().IsAssignableFrom(typeof(LogicHandler)));
-                        if(list!=null&& list.Count() == 1)
-                        {
-                            handleritem[0].Execute();
-                            if (lastLevel == handleritem.Level)
-                            {
-                                lock (sock_excu)
-                                {
-                                    foreach (LogicHandler o in handleritem)
-                                    {
-                                        var opi = o.OutParamInfo.FirstOrDefault(s => s.Name == o.DefaultResName);
-                                        if (res.ContainsKey(opi.Name))
-                                        {
-                                            res[o.DefaultResName] = opi.ValueInfo;
-                                        }
-                                        else
-                                        {
-                                            res.Add(o.DefaultResName, opi.ValueInfo);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else if (list != null && list.Count() > 1)
-                        {
                             list.AsParallel().ForAll(o => o.Execute());
-                            if (lastLevel == handleritem.Level)
-                            {
-                                lock (sock_excu)
-                                {
-                                    foreach (LogicHandler o in handleritem)
-                                    {
-                                        var opi = o.OutParamInfo.FirstOrDefault(s => s.Name == o.DefaultResName);
-                                        if (res.ContainsKey(opi.Name))
-                                        {
-                                            res[o.DefaultResName] = opi.ValueInfo;
-                                        }
-                                        else
-                                        {
-                                            res.Add(o.DefaultResName, opi.ValueInfo);
-                                        }
-                                    }
-                                }
-                            }
                         }
-                        list = handleritem.Where(o => o.GetType().IsAssignableFrom(typeof(JudgeHandler)));
-                        if (list != null && list.Count() >= 1)
-                        {
-                            var resh = handleritem[0].Execute();
-                            if (resh.Type == ResType.Normal)
-                            {
-                                if (lastLevel == handleritem.Level)
-                                {
-                                    res.Add(resh.Name, resh.Res);
-                                }
-                            }
-                            else
-                            {
-                                var level = resh.JumpTarget.Level;
-                                i = Array.IndexOf(levels, level) - 1;
-                                if (i < 0) i = -1;
-                                continue;
-                            }
-                        }
+                        SetNormalResInfo(res_st, lastLevel, 
+                            handleritem, list);
+                    }
+                    list = handleritem.Where(o => o.GetType().IsAssignableFrom(typeof(JudgeHandler)));
+                    if (list != null && list.Count() > 0)
+                    {
+                        var resh = list.First().Execute();
+                        if (resh == null || resh.Length <= 0) continue;
+                        var level = resh[0].JumpTarget.Level;
+                        i = Array.IndexOf(levels, level) - 1;
+                        if (i < 0) i = -1;
+                        continue;
                     }
                 }
-                return res;
+
+                return res_st == null || res_st.Count()<=0 ? null:res_st.ToArray();
             }
             catch (ArgumentException aex)
             {
@@ -390,6 +330,28 @@ namespace CXSoft.Flowsh
                 throw new CXException(curLevel, "", "流程" + curLevel + "层出现错:" + ex.Message);
             }
             #endregion
+        }
+
+        /// <summary>
+        /// 设置默认返回值
+        /// </summary>
+        /// <param name="res_st"></param>
+        /// <param name="lastLevel"></param>
+        /// <param name="handleritem"></param>
+        /// <param name="list"></param>
+        private void SetNormalResInfo(List<ResStruct> res_st, int lastLevel, 
+            LevelList<AbstractHandler> handleritem,IEnumerable<AbstractHandler> list)
+        {
+            if (lastLevel != handleritem.Level) return;
+            foreach (var o in list)
+            {
+                if (!(o is LogicHandler)) continue;
+                var opi = ((LogicHandler)o)?.OutParamInfo?.FirstOrDefault(s => s.Name == ((LogicHandler)o).DefaultResName);
+                if (opi == null) continue;
+                var res_sti = res_st.FirstOrDefault(p => p.Name == opi.Name);
+                if (res_sti != null) res_st.Remove(res_sti);
+                res_st.Add(ResStruct.CreateInstance(((LogicHandler)o).DefaultResName, opi.ValueInfo));
+            }
         }
     }
 }

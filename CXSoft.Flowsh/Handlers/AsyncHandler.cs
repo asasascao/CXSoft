@@ -52,9 +52,10 @@ namespace CXSoft.Flowsh
         /// 执行
         /// </summary>
         /// <returns>返回值</returns>
-        public override ResStruct Execute()
+        public override ResStruct[] Execute()
         {
-            return ExecuteInfo().Result;
+            var res = ExecuteInfo().Result;
+            return res == null ? null:new ResStruct[] { res };
         }
 
         /// <summary>
@@ -94,7 +95,8 @@ namespace CXSoft.Flowsh
                 }
             });
             isback = false;
-            return new ResStruct() { Type = ResType.Normal, Res = res, Name = DefaultResName };
+            return (string.IsNullOrWhiteSpace(DefaultResName) || res == null) ? null : 
+                ResStruct.CreateInstance(DefaultResName, res);
             #endregion
         }
     }

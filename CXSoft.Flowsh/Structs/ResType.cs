@@ -9,7 +9,7 @@ namespace CXSoft.Flowsh
     /// <summary>
     /// 结果类别
     /// </summary>
-    internal enum ResType
+    public enum ResType
     {
         /// <summary>
         /// 正常
